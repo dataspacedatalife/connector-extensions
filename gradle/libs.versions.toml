@@ -3,7 +3,7 @@ format.version = "1.1"
 
 [versions]
 edc = "0.12.0"
-
+gradiant_dataspace = "0.3.0"
 
 [libraries]
 edc-issuance-spi = { module = "org.eclipse.edc:issuerservice-issuance-spi", version.ref = "edc"}
@@ -33,6 +33,11 @@ edc-issuerservice-holder-spi = { module = "org.eclipse.edc:issuerservice-holder-
 edc-dataplane-spi = { module = "org.eclipse.edc:data-plane-spi", version.ref = "edc"}
 edc-util-lib = { module = "org.eclipse.edc:util-lib", version.ref = "edc"}
 edc-dataplane-util = { module = "org.eclipse.edc:data-plane-util", version.ref = "edc"}
+
+# Dataspace Components Bundles
+controlplane = { module = "org.gradiant.edc:bundle-controlplane", version.ref = "gradiant_dataspace" }
+dataplane = { module = "org.gradiant.edc:bundle-dataplane", version.ref = "gradiant_dataspace" }
+identityhub = { module = "org.gradiant.edc:bundle-identityhub", version.ref = "gradiant_dataspace" }
 
 
 

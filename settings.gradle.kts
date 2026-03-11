@@ -30,11 +30,21 @@ dependencyResolutionManagement {
     repositories {
         mavenLocal()
         maven {
-            url = uri("https://oss.sonatype.org/content/repositories/snapshots/")
+            url = uri(System.getenv("MAVEN_PKG_URL"))
+            credentials {
+                username = System.getenv("MAVEN_PKG_USERNAME")
+                password = System.getenv("MAVEN_PKG_PASSWORD")
+            }
         }
         mavenCentral()
+
     }
 }
+
+// Bundles
+include(":launchers:identity-hub")
+include(":launchers:controlplane")
+include(":launchers:dataplane")
 
 // SPIs
 include("spi:printer-spi")
