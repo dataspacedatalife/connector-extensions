@@ -34,7 +34,7 @@ Contains Gradle build configuration and dependency management:
     ```sh
     [versions]
     edc = "0.12.0"
-    gradiant_dataspace = "0.3.0" # change it to the version in use recent version
+    gradiant_dataspace = "0.4.0" # change it to the version in use recent version
 
     [libraries]
     # EDC Libraries used by extensions
@@ -52,7 +52,7 @@ Contains Gradle build configuration and dependency management:
 
 ## Component Building Dependecies
 
-In the file **settings.gradle.kts** this dependencies should be present:
+In the file **settings.gradle.kts** this should be present:
 
 ```sh
 dependencyResolutionManagement {
@@ -71,7 +71,7 @@ dependencyResolutionManagement {
 }
 ``` 
 
-The second repository, *maven {...}* represents the github package repository from where the artifacts will are obtained with the github access token credential.
+The second repository, *maven {...}* represents the github package repository from where the artifacts are obtained with the github access token credential.
 
 
 ## Publishing Strategy Configuration
@@ -102,7 +102,7 @@ val publishStrategies = mapOf(
 First, export the token using the next commands template.
 
 ```shell
-export MAVEN_PKG_URL=maven_package_url # ex.: https://maven.pkg.github.com/dataspacedatalife/connector
+export MAVEN_PKG_URL=maven_package_url # ex.: https://maven.pkg.github.com/dataspacedatalife/connector-libs
 export MAVEN_PKG_USERNAME=your_username
 export MAVEN_PKG_PASSWORD=your_token
 ```
@@ -153,11 +153,11 @@ You should see output similar to the following:
 ```text
 >> docker images
 REPOSITORY                                                                                  TAG                   IMAGE ID       CREATED              SIZE
-identity-hub                                                                                0.3.0                 4ec0b1176656   About a minute ago   245MB
+identity-hub                                                                                0.4.0                 4ec0b1176656   About a minute ago   245MB
 identity-hub                                                                                latest                4ec0b1176656   About a minute ago   245MB
-dataplane                                                                                   0.3.0                 61a63d86e88e   About a minute ago   244MB
+dataplane                                                                                   0.4.0                 61a63d86e88e   About a minute ago   244MB
 dataplane                                                                                   latest                61a63d86e88e   About a minute ago   244MB
-controlplane                                                                                0.3.0                 d9fc72b88524   About a minute ago   246MB
+controlplane                                                                                0.4.0                 d9fc72b88524   About a minute ago   246MB
 controlplane                                                                                latest                d9fc72b88524   About a minute ago   246MB
 ```
 
