@@ -161,8 +161,31 @@ controlplane                                                                    
 controlplane                                                                                latest                d9fc72b88524   About a minute ago   246MB
 ```
 
+## Dataspace Datalife Connector
 
+After creating the docker images, load them in the kind cluser
 
+```sh
+kind load docker-image identity-hub:latest dataplane:latest controlplane:latest -n mvd
+```
+
+Before the deployment of the participant make sure to change the values to reflect the changes in the components:
+* connector/charts/participant/charts/controlplane/values.yaml
+* connector/charts/participant/charts/identityhub/values.yaml
+* connector/charts/participant/charts/dataplane/values.yaml
+* connector/charts/participant/charts/participant-portal/values.yaml
+
+```yml
+deployment:
+  replicaCount: 1
+  imagePullSecret: harbor-regcred-usuarios # only necessary if repository is datalife harbor (harbor.gradiant.org/si-xdatashare-usuarios-pr-01616/controlplane)
+  image:
+    repository: docker.io/library/controlplane # local component with custom extension 
+    tag: latest # component version
+    pullPolicy: IfNotPresent
+```
+
+**Don't forget to add the configuration values required by the custom extensions.**
 
 ## Extensions
 
@@ -429,3 +452,8 @@ The extension expects Verifiable Credentials with the following structure:
 5. **Document configuration settings** using `@Setting` annotation
 6. **Test extensions independently** before integrating into launchers
 7. **Follow EDC naming conventions** for supported types and properties
+
+
+
+
+
