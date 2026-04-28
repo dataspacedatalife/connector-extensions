@@ -24,7 +24,7 @@ import static org.eclipse.edc.policy.model.OdrlNamespace.ODRL_SCHEMA;
 public class CredentialPolicyExtension implements ServiceExtension {
     public static final String NAME = "Credential Policy Evaluation Extension Demo";
 
-    public static final String BUSINESS_PARTNERS_FILE_PATH = "edc.trusted.issuers.file";
+    public static final String BUSINESS_PARTNERS_FILE_PATH = "edc.business.partners.file";
 
     @Inject
     private RuleBindingRegistry ruleBindingRegistry;
