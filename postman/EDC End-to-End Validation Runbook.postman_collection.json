@@ -1,0 +1,557 @@
+{
+	"info": {
+		"_postman_id": "18cbf497-feb1-46b5-8cde-d6ebccbc0b58",
+		"name": "EDC End-to-End Validation Runbook",
+		"description": "Converted from terminal runbook",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+		"_exporter_id": "38462101"
+	},
+	"item": [
+		{
+			"name": "1. Create Access Policy (SUCCESS)",
+			"request": {
+				"method": "POST",
+				"header": [
+					{
+						"key": "Content-Type",
+						"value": "application/json"
+					},
+					{
+						"key": "x-api-key",
+						"value": "{{PROVIDER_API_KEY}}"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n  \"@context\": [\n    \"http://www.w3.org/ns/odrl.jsonld\",\n    {\n      \"edc\": \"https://w3id.org/edc/v0.0.1/ns/\",\n      \"odrl\": \"http://www.w3.org/ns/odrl/2/\"\n    }\n  ],\n  \"@type\": \"PolicyDefinition\",\n  \"@id\": \"credential-policy-success\",\n  \"edc:policy\": {\n    \"@type\": \"Set\",\n    \"permission\": [\n      {\n        \"action\": \"use\",\n        \"constraint\": {\n          \"leftOperand\": \"XDataShareMembershipCredential\",\n          \"operator\": \"eq\",\n          \"rightOperand\": \"active\"\n        }\n      }\n    ],\n    \"prohibition\": [],\n    \"obligation\": []\n  }\n}"
+				},
+				"url": {
+					"raw": "{{PROVIDER_MANAGEMENT_URL}}/policydefinitions",
+					"host": [
+						"{{PROVIDER_MANAGEMENT_URL}}"
+					],
+					"path": [
+						"policydefinitions"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "2. Create Contract Policy (Business Partner)",
+			"request": {
+				"method": "POST",
+				"header": [
+					{
+						"key": "Content-Type",
+						"value": "application/json"
+					},
+					{
+						"key": "x-api-key",
+						"value": "{{PROVIDER_API_KEY}}"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n  \"@context\": [\n    \"http://www.w3.org/ns/odrl.jsonld\",\n    {\n      \"edc\": \"https://w3id.org/edc/v0.0.1/ns/\",\n      \"odrl\": \"http://www.w3.org/ns/odrl/2/\"\n    }\n  ],\n  \"@type\": \"PolicyDefinition\",\n  \"@id\": \"credential-policy-business-partner\",\n  \"edc:policy\": {\n    \"@type\": \"odrl:Set\",\n    \"permission\": [\n      {\n        \"action\": \"use\",\n        \"constraint\": {\n          \"leftOperand\": \"XDataShareMembershipCredential.partner\",\n          \"operator\": \"eq\",\n          \"rightOperand\": \"BusinessPartners\"\n        }\n      }\n    ]\n    ,\n    \"prohibition\": [],\n    \"obligation\": []\n  }\n}"
+				},
+				"url": {
+					"raw": "{{PROVIDER_MANAGEMENT_URL}}/policydefinitions",
+					"host": [
+						"{{PROVIDER_MANAGEMENT_URL}}"
+					],
+					"path": [
+						"policydefinitions"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "3.1 Create Asset",
+			"request": {
+				"method": "POST",
+				"header": [
+					{
+						"key": "Content-Type",
+						"value": "application/json"
+					},
+					{
+						"key": "x-api-key",
+						"value": "{{PROVIDER_API_KEY}}"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n  \"@context\": {\"@vocab\": \"https://w3id.org/edc/v0.0.1/ns/\"},\n  \"@id\": \"{{ASSET_ID}}\",\n  \"@type\": \"Asset\",\n  \"properties\": {\n    \"description\": \"Policy validation asset\"\n  },\n  \"dataAddress\": {\n    \"type\": \"File\",\n    \"sourceFile\": \"/tmp/asset.txt\"\n  }\n}"
+				},
+				"url": {
+					"raw": "{{PROVIDER_MANAGEMENT_URL}}/assets",
+					"host": [
+						"{{PROVIDER_MANAGEMENT_URL}}"
+					],
+					"path": [
+						"assets"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "4. Create Contract Definition",
+			"request": {
+				"method": "POST",
+				"header": [
+					{
+						"key": "Content-Type",
+						"value": "application/json"
+					},
+					{
+						"key": "x-api-key",
+						"value": "{{PROVIDER_API_KEY}}"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n  \"@context\": {\"@vocab\": \"https://w3id.org/edc/v0.0.1/ns/\"},\n  \"@id\": \"contractdef-policy-test-active2\",\n  \"@type\": \"ContractDefinition\",\n  \"accessPolicyId\": \"credential-policy-success\",\n  \"contractPolicyId\": \"credential-policy-business-partner\",\n  \"assetsSelector\": [\n    {\n      \"operandLeft\": \"https://w3id.org/edc/v0.0.1/ns/id\",\n      \"operator\": \"=\",\n      \"operandRight\": \"{{ASSET_ID}}\"\n    }\n  ]\n}"
+				},
+				"url": {
+					"raw": "{{PROVIDER_MANAGEMENT_URL}}/contractdefinitions",
+					"host": [
+						"{{PROVIDER_MANAGEMENT_URL}}"
+					],
+					"path": [
+						"contractdefinitions"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "6. Catalog Query",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"exec": [
+							""
+						],
+						"type": "text/javascript",
+						"packages": {}
+					}
+				},
+				{
+					"listen": "prerequest",
+					"script": {
+						"exec": [
+							""
+						],
+						"type": "text/javascript",
+						"packages": {}
+					}
+				}
+			],
+			"request": {
+				"method": "POST",
+				"header": [
+					{
+						"key": "Content-Type",
+						"value": "application/json"
+					},
+					{
+						"key": "X-API-KEY",
+						"value": "{{CONSUMER_API_KEY}}"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n    \"@context\": [\n        \"https://w3id.org/edc/connector/management/v0.0.1\"\n    ],\n    \"@type\": \"CatalogRequest\",\n    \"counterPartyAddress\": \"https://connector1.xdatashare.com/controlplane/dsp/api/dsp\",\n    \"counterPartyId\": \"did:web:connector1.xdatashare.com:identityhub:did\",\n    \"protocol\": \"dataspace-protocol-http\",\n    \"querySpec\": {\n        \"offset\": 0,\n        \"limit\": 50\n    }\n}"
+				},
+				"url": {
+					"raw": "{{CONSUMER_CONTROLPLANE_URL}}/management/api/management/v3/catalog/request",
+					"host": [
+						"{{CONSUMER_CONTROLPLANE_URL}}"
+					],
+					"path": [
+						"management",
+						"api",
+						"management",
+						"v3",
+						"catalog",
+						"request"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "6.1 Catalog Query (Consumer 2)",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"exec": [
+							""
+						],
+						"type": "text/javascript",
+						"packages": {}
+					}
+				},
+				{
+					"listen": "prerequest",
+					"script": {
+						"exec": [
+							""
+						],
+						"type": "text/javascript",
+						"packages": {}
+					}
+				}
+			],
+			"request": {
+				"method": "POST",
+				"header": [
+					{
+						"key": "Content-Type",
+						"value": "application/json"
+					},
+					{
+						"key": "X-API-KEY",
+						"value": "cGhhcm1hY3kzLXBhc3N3b3Jk"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n    \"@context\": [\n        \"https://w3id.org/edc/connector/management/v0.0.1\"\n    ],\n    \"@type\": \"CatalogRequest\",\n    \"counterPartyAddress\": \"https://connector1.xdatashare.com/controlplane/dsp/api/dsp\",\n    \"counterPartyId\": \"did:web:connector1.xdatashare.com:identityhub:did\",\n    \"protocol\": \"dataspace-protocol-http\",\n    \"querySpec\": {\n        \"offset\": 0,\n        \"limit\": 50\n    }\n}"
+				},
+				"url": {
+					"raw": "https://dl-pharmacy3.srv.cesga.es/controlplane/management/api/management/v3/catalog/request",
+					"protocol": "https",
+					"host": [
+						"dl-pharmacy3",
+						"srv",
+						"cesga",
+						"es"
+					],
+					"path": [
+						"controlplane",
+						"management",
+						"api",
+						"management",
+						"v3",
+						"catalog",
+						"request"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "7. Contract Negotiation",
+			"request": {
+				"method": "POST",
+				"header": [
+					{
+						"key": "Content-Type",
+						"value": "application/json"
+					},
+					{
+						"key": "x-api-key",
+						"value": "{{CONSUMER_API_KEY}}"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n  \"@context\": [\"https://w3id.org/edc/connector/management/v0.0.1\"],\n  \"@type\": \"ContractRequest\",\n  \"counterPartyAddress\": \"{{PROVIDER_DSP_URL}}\",\n  \"counterPartyId\": \"{{PROVIDER_DID}}\",\n  \"protocol\": \"dataspace-protocol-http\",\n  \"policy\": {\n    \"@type\": \"Offer\",\n    \"@id\": \"{{POLICY_ID_ASSET_1}}\",\n    \"assigner\": \"{{PROVIDER_DID}}\",\n    \"permission\": [\n      {\n        \"action\": \"use\",\n        \"constraint\": {\n          \"leftOperand\": \"XDataShareMembershipCredential.partner\",\n          \"operator\": \"eq\",\n          \"rightOperand\": \"BusinessPartners\"\n        }\n      }\n    ],\n    \"target\": \"{{ASSET_ID}}\"\n  },\n  \"callbackAddresses\": []\n}"
+				},
+				"url": {
+					"raw": "{{CONSUMER_MANAGEMENT_URL}}/contractnegotiations",
+					"host": [
+						"{{CONSUMER_MANAGEMENT_URL}}"
+					],
+					"path": [
+						"contractnegotiations"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "7.1 Contract Negotiation (Consumer 2)",
+			"request": {
+				"method": "POST",
+				"header": [
+					{
+						"key": "Content-Type",
+						"value": "application/json"
+					},
+					{
+						"key": "x-api-key",
+						"value": "cGhhcm1hY3kzLXBhc3N3b3Jk"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n  \"@context\": [\"https://w3id.org/edc/connector/management/v0.0.1\"],\n  \"@type\": \"ContractRequest\",\n  \"counterPartyAddress\": \"{{PROVIDER_DSP_URL}}\",\n  \"counterPartyId\": \"{{PROVIDER_DID}}\",\n  \"protocol\": \"dataspace-protocol-http\",\n  \"policy\": {\n    \"@type\": \"Offer\",\n    \"@id\": \"{{POLICY_ID_ASSET_1}}\",\n    \"assigner\": \"{{PROVIDER_DID}}\",\n    \"permission\": [\n      {\n        \"action\": \"use\",\n        \"constraint\": {\n          \"leftOperand\": \"XDataShareMembershipCredential.partner\",\n          \"operator\": \"eq\",\n          \"rightOperand\": \"BusinessPartners\"\n        }\n      }\n    ],\n    \"target\": \"{{ASSET_ID}}\"\n  },\n  \"callbackAddresses\": []\n}"
+				},
+				"url": {
+					"raw": "https://dl-pharmacy3.srv.cesga.es/controlplane/management/api/management/v3/contractnegotiations",
+					"protocol": "https",
+					"host": [
+						"dl-pharmacy3",
+						"srv",
+						"cesga",
+						"es"
+					],
+					"path": [
+						"controlplane",
+						"management",
+						"api",
+						"management",
+						"v3",
+						"contractnegotiations"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "8. Get Contract Agreement ID",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"exec": [
+							"let json = pm.response.json();",
+							"pm.environment.set('CONTRACT_AGREEMENT_ID', json[0].contractAgreementId);"
+						],
+						"type": "text/javascript",
+						"packages": {}
+					}
+				}
+			],
+			"request": {
+				"method": "POST",
+				"header": [
+					{
+						"key": "Content-Type",
+						"value": "application/json"
+					},
+					{
+						"key": "x-api-key",
+						"value": "{{CONSUMER_API_KEY}}"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n  \"@context\": [\"https://w3id.org/edc/connector/management/v0.0.1\"],\n  \"@type\": \"QuerySpec\"\n}"
+				},
+				"url": {
+					"raw": "{{CONSUMER_MANAGEMENT_URL}}/contractnegotiations/request",
+					"host": [
+						"{{CONSUMER_MANAGEMENT_URL}}"
+					],
+					"path": [
+						"contractnegotiations",
+						"request"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "8.1 Get Contract Agreement ID (Consumer 2)",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"exec": [
+							"let json = pm.response.json();",
+							"pm.environment.set('CONTRACT_AGREEMENT_ID', json[0].contractAgreementId);"
+						],
+						"type": "text/javascript",
+						"packages": {}
+					}
+				}
+			],
+			"request": {
+				"method": "POST",
+				"header": [
+					{
+						"key": "Content-Type",
+						"value": "application/json"
+					},
+					{
+						"key": "x-api-key",
+						"value": "cGhhcm1hY3kzLXBhc3N3b3Jk"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n  \"@context\": [\"https://w3id.org/edc/connector/management/v0.0.1\"],\n  \"@type\": \"QuerySpec\"\n}"
+				},
+				"url": {
+					"raw": "https://dl-pharmacy3.srv.cesga.es/controlplane/management/api/management/v3/contractnegotiations/request",
+					"protocol": "https",
+					"host": [
+						"dl-pharmacy3",
+						"srv",
+						"cesga",
+						"es"
+					],
+					"path": [
+						"controlplane",
+						"management",
+						"api",
+						"management",
+						"v3",
+						"contractnegotiations",
+						"request"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "9. Initiate Transfer (Mail-PUSH)",
+			"request": {
+				"method": "POST",
+				"header": [
+					{
+						"key": "Content-Type",
+						"value": "application/json"
+					},
+					{
+						"key": "x-api-key",
+						"value": "{{CONSUMER_API_KEY}}"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n  \"@context\": [\"https://w3id.org/edc/connector/management/v0.0.1\"],\n  \"assetId\": \"{{ASSET_ID}}\",\n  \"connectorId\": \"{{PROVIDER_DID}}\",\n  \"counterPartyAddress\": \"{{PROVIDER_DSP_URL}}\",\n  \"contractId\": \"{{CONTRACT_AGREEMENT_ID}}\",\n  \"protocol\": \"dataspace-protocol-http\",\n  \"transferType\": \"Mail-PUSH\",\n  \"dataDestination\": {\n    \"type\": \"Mail\",\n    \"recipient\": \"{{RECIPIENT_EMAIL}}\"\n  }\n}"
+				},
+				"url": {
+					"raw": "{{CONSUMER_MANAGEMENT_URL}}/transferprocesses",
+					"host": [
+						"{{CONSUMER_MANAGEMENT_URL}}"
+					],
+					"path": [
+						"transferprocesses"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "10. List Transfer Processes",
+			"request": {
+				"method": "POST",
+				"header": [
+					{
+						"key": "Content-Type",
+						"value": "application/json"
+					},
+					{
+						"key": "x-api-key",
+						"value": "{{PROVIDER_API_KEY}}"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n  \"@context\": [\"https://w3id.org/edc/connector/management/v0.0.1\"],\n  \"@type\": \"QuerySpec\"\n}"
+				},
+				"url": {
+					"raw": "{{PROVIDER_MANAGEMENT_URL}}/transferprocesses/request",
+					"host": [
+						"{{PROVIDER_MANAGEMENT_URL}}"
+					],
+					"path": [
+						"transferprocesses",
+						"request"
+					]
+				}
+			},
+			"response": []
+		}
+	],
+	"event": [
+		{
+			"listen": "prerequest",
+			"script": {
+				"type": "text/javascript",
+				"packages": {},
+				"exec": [
+					""
+				]
+			}
+		},
+		{
+			"listen": "test",
+			"script": {
+				"type": "text/javascript",
+				"packages": {},
+				"exec": [
+					""
+				]
+			}
+		}
+	],
+	"variable": [
+		{
+			"key": "CONSUMER_URL",
+			"value": "https://dl-pharmacy1.srv.cesga.es"
+		},
+		{
+			"key": "PROVIDER_URL",
+			"value": "https://connector1.xdatashare.com"
+		},
+		{
+			"key": "CONSUMER_CONTROLPLANE_URL",
+			"value": "https://dl-pharmacy1.srv.cesga.es/controlplane"
+		},
+		{
+			"key": "PROVIDER_MANAGEMENT_URL",
+			"value": "https://connector1.xdatashare.com/controlplane/management/api/management/v3"
+		},
+		{
+			"key": "CONSUMER_MANAGEMENT_URL",
+			"value": "https://dl-pharmacy1.srv.cesga.es/controlplane/management/api/management/v3"
+		},
+		{
+			"key": "PROVIDER_DSP_URL",
+			"value": "https://connector1.xdatashare.com/controlplane/dsp/api/dsp"
+		},
+		{
+			"key": "PROVIDER_API_KEY",
+			"value": ""
+		},
+		{
+			"key": "CONSUMER_API_KEY",
+			"value": ""
+		},
+		{
+			"key": "PROVIDER_DID",
+			"value": "did:web:connector1.xdatashare.com:identityhub:did"
+		},
+		{
+			"key": "CONSUMER_DID",
+			"value": "did:web:dl-pharmacy1.srv.cesga.es:identityhub:did"
+		},
+		{
+			"key": "ASSET_ID",
+			"value": "asset-policy-test-active"
+		},
+		{
+			"key": "POLICY_ID_ASSET_1",
+			"value": ""
+		},
+		{
+			"key": "CONTRACT_AGREEMENT_ID",
+			"value": ""
+		},
+		{
+			"key": "RECIPIENT_EMAIL",
+			"value": "recipient@example.com"
+		}
+	]
+}
