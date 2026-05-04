@@ -331,7 +331,7 @@ When creating a data transfer request:
   ```json
   {
     "type": "Mail",
-    "recipient": "recipient@example.com"
+    "recipient": "recipient@ethereal.com"
   }
   ```
 
@@ -359,13 +359,13 @@ A Control Plane extension demonstrating policy enforcement based on Verifiable C
 1. **CredentialCheckFunction** - Policy evaluation function
    - Implements `AtomicConstraintRuleFunction<Permission, ParticipantAgentPolicyContext>`
    - Validates Verifiable Credentials in participant claims
-   - Checks for specific credential types (e.g., `MembershipCredential`)
+   - Checks for specific credential types (e.g., `XdataShareMembershipCredential`)
    - Evaluates membership types against policy constraints
    - Supports equality (`EQ`) operator for credential matching
 
 2. **CredentialPolicyExtension** - Main extension class
    - Registers the credential check function with the `PolicyEngine`
-   - Binds the `MembershipCredential.type` constraint to multiple scopes:
+   - Binds the `XdataShareMembershipCredential.partner` constraint to multiple scopes:
      - `catalog` - Controls catalog visibility
      - `contract.negotiation` - Enforces constraints during contract negotiation
      - `transfer.process` - Validates credentials during data transfer
@@ -375,9 +375,9 @@ A Control Plane extension demonstrating policy enforcement based on Verifiable C
 The function performs the following checks:
 1. Verifies the participant has Verifiable Credentials in their claims (`vc` claim)
 2. Ensures the VC list is not empty
-3. Filters credentials by type (looking for credentials ending with `MembershipCredential`)
+3. Filters credentials by type (looking for credentials ending with `XdataShareMembershipCredential`)
 4. Extracts the `membership` claim from credential subjects
-5. Compares the `membershipType` value against the policy's right operand
+5. Compares the `id` value against the policy's right operand method `BusinessPartners` (from local json business partners DID list)
 
 **Configuration:**
 
@@ -402,9 +402,9 @@ To enforce that only "FullMember" participants can access a resource:
       {
         "action": "use",
         "constraint": {
-          "leftOperand": "MembershipCredential.type",
+          "leftOperand": "XdataShareMembershipCredential.partner",
           "operator": "eq",
-          "rightOperand": "FullMember"
+          "rightOperand": "BusinessPartners"
         }
       }
     ]
@@ -453,6 +453,351 @@ The extension expects Verifiable Credentials with the following structure:
 6. **Test extensions independently** before integrating into launchers
 7. **Follow EDC naming conventions** for supported types and properties
 
+
+## Testing (Postman)
+
+This repository includes a comprehensive Postman collection for end-to-end validation of EDC connector functionality, located at `postman/EDC End-to-End Validation Runbook.postman_collection.json`.
+
+### Prerequisites
+
+1. **Import the Postman Collection:**
+   - Open Postman
+   - Import `postman/EDC End-to-End Validation Runbook.postman_collection.json`
+   - The collection includes pre-configured requests for the complete data sharing flow
+
+2. **Configure Environment Variables:**
+
+   Edit the collection variables (or create a Postman environment) with the following values:
+
+   | Variable | Description | Example Value |
+   |----------|-------------|---------------|
+   | `PROVIDER_URL` | Provider connector base URL | `https://connector1.xdatashare.com` |
+   | `CONSUMER_URL` | Consumer connector base URL | `https://dl-pharmacy1.srv.cesga.es` |
+   | `PROVIDER_MANAGEMENT_URL` | Provider Management API endpoint | `https://connector1.xdatashare.com/controlplane/management/api/management/v3` |
+   | `CONSUMER_MANAGEMENT_URL` | Consumer Management API endpoint | `https://dl-pharmacy1.srv.cesga.es/controlplane/management/api/management/v3` |
+   | `PROVIDER_DSP_URL` | Provider Dataspace Protocol endpoint | `https://connector1.xdatashare.com/controlplane/dsp/api/dsp` |
+   | `PROVIDER_API_KEY` | Provider Management API authentication key | `daksmdsadasd=` (base64 encoded) |
+   | `CONSUMER_API_KEY` | Consumer Management API authentication key | `sasdasxsaefae=` (base64 encoded) |
+   | `PROVIDER_DID` | Provider's Decentralized Identifier | `did:web:connector1.xdatashare.com:identityhub:did` |
+   | `CONSUMER_DID` | Consumer's Decentralized Identifier | `did:web:dl-pharmacy1.srv.cesga.es:identityhub:did` |
+   | `ASSET_ID` | Unique identifier for the asset | `asset-policy-test-active` |
+   | `RECIPIENT_EMAIL` | Ethereal email address for file transfer | `recipient@ethereal.com` |
+   | `POLICY_ID_ASSET_1` | Policy offer ID from catalog (manually fetched from catalog dataset during testing)| - |
+   | `CONTRACT_AGREEMENT_ID` | Negotiated contract ID (manually fetched from contract list during testing) | - |
+
+---
+
+### End-to-End Testing Flow
+
+#### **Phase 1: Provider Setup - Create Policies**
+
+**Step 1: Create Access Policy (SUCCESS)**
+
+The provider creates an access policy that validates participant credentials during catalog access.
+
+```http
+POST {{PROVIDER_MANAGEMENT_URL}}/policydefinitions
+X-API-KEY: {{PROVIDER_API_KEY}}
+```
+
+**What's happening:**
+- Creates a policy with ID `credential-policy-success`
+- Requires participants to have an active `XDataShareMembershipCredential`
+- This policy controls **who can see the asset** in the catalog
+- Uses the custom `CredentialCheckFunction` extension
+
+**Step 2: Create Contract Policy (Business Partner)**
+
+The provider creates a contract policy that enforces business partner restrictions.
+
+```http
+POST {{PROVIDER_MANAGEMENT_URL}}/policydefinitions
+X-API-KEY: {{PROVIDER_API_KEY}}
+```
+
+**What's happening:**
+- Creates a policy with ID `credential-policy-business-partner`
+- Checks if the participant's credential contains a business partner ID that matches the allowed list
+- This policy controls **who can negotiate and use the asset**
+- Uses the custom `BusinessPartnerCredentialCheckFunction` extension
+- The extension reads business partner IDs from a file configured via `EDC_BUSINESS_PARTNERS_FILE` in controlplane
+
+**Business Partners File Setup:**
+
+The `BusinessPartnerCredentialCheckFunction` expects a JSON file with allowed DIDs:
+
+```json
+[
+  "did:web:dl-pharmacy1.srv.cesga.es:identityhub:did"
+]
+```
+
+This file should be accessible to the provider's controlplane container.
+
+---
+
+#### **Phase 2: Provider Setup - Create Asset**
+
+**Step 3: Create Asset File in Data Plane**
+
+Before creating the asset definition, you need to create the actual data file in the provider's data plane container.
+
+**Option A: Using kubectl (for Kubernetes deployments)**
+
+```bash
+# Create the file directly in the data plane pod
+kubectl exec -n <namespace> <provider-dataplane-pod-name> -- sh -c 'echo "Sample data content for testing" > /tmp/asset.txt'
+
+# Verify the file was created
+kubectl exec -n <namespace> <provider-dataplane-pod-name> -- ls -la /tmp/asset.txt
+```
+
+**Option B: Using docker exec (for Docker deployments)**
+
+```bash
+# Create the file in the data plane container
+docker exec <provider-dataplane-container> sh -c 'echo "Sample data content for testing" > /tmp/asset.txt'
+
+# Verify the file was created
+docker exec <provider-dataplane-container> ls -la /tmp/asset.txt
+```
+
+**Option C: Copy existing file**
+
+```bash
+# Kubernetes
+kubectl cp /path/to/local/file.txt <namespace>/<provider-dataplane-pod-name>:/tmp/asset.txt
+
+# Docker
+docker cp /path/to/local/file.txt <provider-dataplane-container>:/tmp/asset.txt
+```
+
+**Step 3.1: Create Asset Definition**
+
+After the file exists in the data plane, create the asset definition in the control plane.
+
+```http
+POST {{PROVIDER_MANAGEMENT_URL}}/assets
+X-API-KEY: {{PROVIDER_API_KEY}}
+```
+
+**What's happening:**
+- Registers an asset with ID `asset-policy-test-active` (or your custom `{{ASSET_ID}}`)
+- Points to the file created in the data plane at `/tmp/asset.txt`
+- Uses the custom `File` data source type from the `dataplane-demo-extension`
+- The asset metadata includes a description visible in the catalog
+
+**Asset Configuration:**
+```json
+{
+  "@id": "asset-policy-test-active",
+  "properties": {
+    "description": "Policy validation asset"
+  },
+  "dataAddress": {
+    "type": "File",
+    "sourceFile": "/tmp/asset.txt"
+  }
+}
+```
+
+---
+
+#### **Phase 3: Provider Setup - Create Contract Definition**
+
+**Step 4: Create Contract Definition**
+
+Link the asset with the policies to create an offered contract.
+
+```http
+POST {{PROVIDER_MANAGEMENT_URL}}/contractdefinitions
+X-API-KEY: {{PROVIDER_API_KEY}}
+```
+
+**What's happening:**
+- Creates a contract definition with ID `contractdef-policy-test-active2`
+- Links the access policy (`credential-policy-success`) for catalog visibility
+- Links the contract policy (`credential-policy-business-partner`) for negotiation/usage
+- Selects the specific asset using the `assetsSelector` criteria
+- Makes the asset available for discovery and negotiation
+
+**Policy Enforcement Flow:**
+1. **Access Policy** → Evaluated when consumer requests catalog
+2. **Contract Policy** → Evaluated during contract negotiation and transfer
+
+---
+
+#### **Phase 4: Consumer Actions - Discovery**
+
+**Step 5: Consumer 1 - Catalog Query (Pharmacy1)**
+
+The authorized consumer queries the provider's catalog.
+
+```http
+POST {{CONSUMER_MANAGEMENT_URL}}/catalog/request
+X-API-KEY: {{CONSUMER_API_KEY}}
+```
+
+**What's happening:**
+- Consumer (pharmacy1) requests the provider's catalog
+- Provider evaluates the access policy against pharmacy1's credentials
+- **Expected Result:** Asset appears in catalog because pharmacy1 has valid `XDataShareMembershipCredential`
+- Response includes available datasets with their policies
+- Copy the policy `@id` from the response to `POLICY_ID_ASSET_1` variable
+
+**Step 5.1: Consumer 2 - Catalog Query (Pharmacy3)**
+
+An unauthorized consumer attempts to query the catalog.
+
+```http
+POST https://dl-pharmacy3.srv.cesga.es/controlplane/management/api/management/v3/catalog/request
+X-API-KEY: qwertyujnb456kjbv
+```
+
+**What's happening:**
+- Consumer (pharmacy3) requests the provider's catalog
+- Provider evaluates the access policy against pharmacy3's credentials
+- **Expected Result (if not in business partners list):** Asset may appear in catalog (access policy passes) BUT negotiation will fail (contract policy fails)
+- This demonstrates the difference between access policies and contract policies
+
+---
+
+**Note**: If user wants to test with a different `consumer 2` then it must be changed manually in the request.
+
+#### **Phase 5: Consumer Actions - Contract Negotiation**
+
+**Step 6: Consumer 1 - Contract Negotiation (Pharmacy1)**
+
+Pharmacy1 initiates contract negotiation for the discovered asset.
+
+```http
+POST {{CONSUMER_MANAGEMENT_URL}}/contractnegotiations
+X-API-KEY: {{CONSUMER_API_KEY}}
+```
+
+**What's happening:**
+- Consumer sends a contract request to the provider
+- Includes the policy from the catalog offer (`POLICY_ID_ASSET_1`)
+- Provider evaluates `credential-policy-business-partner`
+- Checks if pharmacy1's DID (`did:web:dl-pharmacy1.srv.cesga.es:identityhub:did`) is in the business partners file
+- **Expected Result:** Negotiation succeeds if pharmacy1 is in the list, and contractAgreementId is present in request 7.
+
+**Step 6.1: Consumer 2 - Contract Negotiation (Pharmacy3)**
+
+Pharmacy3 attempts to negotiate a contract.
+
+```http
+POST https://dl-pharmacy3.srv.cesga.es/controlplane/management/api/management/v3/contractnegotiations
+X-API-KEY: qwertyujnb456kjbv
+```
+
+**What's happening:**
+- Consumer sends a contract request to the provider
+- Provider evaluates `credential-policy-business-partner`
+- Checks if pharmacy3's DID is in the business partners file
+- **Expected Result:** Negotiation fails if pharmacy3 is NOT in the list, and contractAgreementId is not present in request 7.
+
+---
+
+**Note**: If user wants to test with a different `consumer 2` then it must be changed manually in the request.
+
+#### **Phase 6: Consumer Actions - Retrieve Agreement**
+
+**Step 7: Get Contract Agreement ID (Pharmacy1)**
+
+After successful negotiation, retrieve the contract agreement ID.
+
+```http
+POST {{CONSUMER_MANAGEMENT_URL}}/contractnegotiations/request
+X-API-KEY: {{CONSUMER_API_KEY}}
+```
+
+**What's happening:**
+- Queries all contract negotiations for the consumer
+- Finds completed negotiations in `FINALIZED` state
+- Extracts the `contractAgreementId` from the response
+
+User should manually search this result with the the IdResponse of the previous request, and if it exists, copy the contractAgreementId which will be used in the next query.
+
+#### **Phase 7: Consumer Actions - Data Transfer**
+
+**Step 8: Initiate Transfer (Mail-PUSH)**
+
+Use the contract agreement to initiate a data transfer.
+
+```http
+POST {{CONSUMER_MANAGEMENT_URL}}/transferprocesses
+X-API-KEY: {{CONSUMER_API_KEY}}
+```
+
+**What's happening:**
+- Consumer initiates a transfer using the `CONTRACT_AGREEMENT_ID`
+- Specifies `Mail-PUSH` as the transfer type (custom extension)
+- Provides destination address with recipient email
+- Provider's data plane:
+  1. Reads the file from `/tmp/asset.txt` using `FileDataSource`
+  2. Sends it via email using `MailDataSink`
+  3. Uses the configured SMTP settings from the extension
+
+**Transfer Request Configuration:**
+```json
+{
+  "assetId": "asset-policy-test-active",
+  "transferType": "Mail-PUSH",
+  "dataDestination": {
+    "type": "Mail",
+    "recipient": "recipient@ethereal.com"
+  }
+}
+```
+
+---
+
+#### **Phase 8: Verification**
+
+**Step 9: List Transfer Processes**
+
+Monitor the transfer process status.
+
+```http
+POST {{PROVIDER_MANAGEMENT_URL}}/transferprocesses/request
+X-API-KEY: {{PROVIDER_API_KEY}}
+```
+
+**What's happening:**
+- Provider lists all transfer processes
+- Shows current state of each transfer
+- Verify the transfer reached `DEPROVISIONED` state
+- Check provider data plane logs for email sending confirmation
+
+**Verify Email Delivery:**
+- Check the recipient's message inbox for the email with attachment
+- Email subject: `File transfer {processId}`
+- Email contains the file from `/tmp/asset.txt` as an attachment
+
+---
+
+### Testing Different Scenarios
+
+**Scenario 1: Authorized Consumer (Pharmacy1)**
+- Has valid membership credential ✓
+- DID is in business partners file ✓
+- Expected: Full access (catalog → negotiate → transfer) ✓
+
+**Scenario 2: Unauthorized Consumer (Pharmacy3)**
+- Has valid membership credential ✓
+- DID is NOT in business partners file ✗
+- Expected: Can see catalog, but negotiation fails ✗
+
+**Scenario 3: Multiple Business Partners**
+- Add multiple DIDs to business partners JSON file:
+  ```json
+  [
+    "did:web:dl-pharmacy1.srv.cesga.es:identityhub:did",
+    "did:web:dl-pharmacy2.srv.cesga.es:identityhub:did"
+  ]
+  ```
+- Both pharmacy1 and pharmacy2 can negotiate contracts
 
 
 
