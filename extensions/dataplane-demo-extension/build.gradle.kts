@@ -10,8 +10,7 @@ dependencies {
     implementation(libs.edc.dataplane.spi)
     implementation(libs.edc.util.lib)
     implementation(libs.edc.dataplane.util)
-    implementation("com.sun.mail:jakarta.mail:2.0.2")
-    implementation("org.eclipse.angus:angus-activation:2.0.2")
+    implementation("org.eclipse.angus:jakarta.mail:2.0.3")
 }
 
 publishing {
